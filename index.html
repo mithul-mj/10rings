@@ -27,24 +27,32 @@
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
         <div id="ui-layer">
+            <div id="level-display">Level 1</div>
             <div id="player-hud" class="hud">
                 <div class="name">Son (Player)</div>
                 <div class="hp-bar-bg">
                     <div id="player-hp" class="hp-bar"></div>
                 </div>
-                <div class="rings-count">Rings: <span id="player-rings">5</span></div>
+                <div id="player-rings-display" class="rings-visual-container"></div>
             </div>
             <div id="enemy-hud" class="hud">
                 <div class="name">Father (AI)</div>
                 <div class="hp-bar-bg">
                     <div id="enemy-hp" class="hp-bar"></div>
                 </div>
-                <div class="rings-count">Rings: <span id="enemy-rings">5</span></div>
+                <div id="enemy-rings-display" class="rings-visual-container"></div>
             </div>
 
             <div id="controls-hint">
-                <div class="desktop-hint">Controls: WASD Move, SPACE Jump, J Punch, K Kick, U Throw Ring, I Burst</div>
-                <div class="mobile-hint">Mobile: Left Stick Move, Right Stick Aim/Throw, Buttons for actions.</div>
+                <div class="desktop-hint">
+                    <span style="color: #ffd700;">[WASD]</span> Move &nbsp;
+                    <span style="color: #ffd700;">[SPACE]</span> Jump &nbsp;
+                    <span style="color: #ff4444;">[I]</span> Burst &nbsp;
+                    <span style="color: #00ff00;">[L]</span> Whip
+                </div>
+                <div class="mobile-hint">
+                    Left Stick: Move &nbsp;|&nbsp; Right Stick: Aim/Throw &nbsp;|&nbsp; Buttons: Jump/Skills
+                </div>
             </div>
             <div id="mobile-controls">
                 <div id="stick-left" class="stick-zone">
@@ -58,8 +66,14 @@
                 <div id="mobile-buttons">
                     <button id="btn-jump" class="mob-btn" data-key=" ">⬆</button>
 
-                    <button id="btn-burst" class="mob-btn" data-key="i">💥</button>
-                    <button id="btn-special" class="mob-btn" data-key="l">🐉</button>
+                    <button id="btn-burst" class="mob-btn" data-key="i">
+                        <div class="btn-fill"></div>
+                        <span class="btn-content">💥</span>
+                    </button>
+                    <button id="btn-special" class="mob-btn" data-key="l">
+                        <div class="btn-fill"></div>
+                        <span class="btn-content">🐉</span>
+                    </button>
                 </div>
             </div>
 

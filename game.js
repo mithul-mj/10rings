@@ -86,8 +86,8 @@ const RING_ORBIT_RADIUS = 60;
 const RING_SPEED = 12;
 const RING_RETURN_SPEED_BASE = 4;
 const RING_RETURN_SPEED_BOOST = 9;
-const RING_DAMAGE = 8;
-const BURST_DAMAGE = 15;
+const RING_DAMAGE = 6;
+const BURST_DAMAGE = 12;
 const MELEE_DAMAGE = 5;
 const MAX_HP = 500;
 
@@ -340,18 +340,30 @@ class Particle {
         this.y += this.vy;
         this.z += this.vz;
         this.vz -= GRAVITY * 0.5;
+        this.vx *= 0.95; // Air resistance
+        this.vy *= 0.95;
+
+        // Floor bounce
+        if (this.y > FLOOR_BOTTOM && this.vz < 0) {
+            this.y = FLOOR_BOTTOM;
+            this.vz *= -0.6;
+            this.vx *= 0.8;
+        }
 
         if (this.z < 0) {
             this.z = 0;
-            this.vz *= -0.5;
+            this.vz *= -0.6;
+            this.vx *= 0.8;
         }
 
-        this.life -= 0.05;
+        this.life -= 0.04;
         this.size *= 0.95;
     }
 
     draw(ctx) {
+        if (this.life <= 0) return;
         ctx.save();
+        ctx.globalCompositeOperation = 'lighter'; // Core change for "glowing" look
         ctx.globalAlpha = this.life;
         ctx.fillStyle = this.color;
         const drawY = this.y - this.z;
@@ -363,33 +375,80 @@ class Particle {
 }
 
 class Shockwave {
-    constructor(x, y, z, color) {
+    constructor(x, y, z, color, type = 'normal') {
         this.x = x;
         this.y = y;
         this.z = z;
         this.color = color;
-        this.radius = 10;
+        this.type = type;
+        this.radius = type === 'burst' ? 20 : 10;
         this.life = 1.0;
-        this.lineWidth = 10;
-        this.growthRate = 15;
+        this.lineWidth = type === 'burst' ? 8 : 4;
+        this.growthRate = type === 'burst' ? 25 : 12;
     }
 
     update() {
         this.radius += this.growthRate;
-        this.life -= 0.06;
+        this.life -= 0.08;
         this.lineWidth *= 0.9;
+        this.growthRate *= 0.9; // Decelerate expansion
     }
 
     draw(ctx) {
+        if (this.life <= 0) return;
         ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = this.life;
         ctx.strokeStyle = this.color;
         ctx.lineWidth = this.lineWidth;
         ctx.translate(this.x, this.y - this.z);
-        ctx.scale(1, 0.4);
+        ctx.scale(1, 0.4); // Perspective
         ctx.beginPath();
         ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.restore();
+    }
+}
+
+class ImpactFlash {
+    constructor(x, y, z, color, size = 30) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.color = '#ffffff'; // Always bright white core
+        this.glowColor = color;
+        this.size = size;
+        this.life = 1.0;
+        this.decay = 0.2; // Fast fade
+    }
+
+    update() {
+        this.life -= this.decay;
+    }
+
+    draw(ctx) {
+        if (this.life <= 0) return;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = this.life;
+
+        // Core
+        ctx.fillStyle = this.color;
+        const drawY = this.y - this.z;
+
+        ctx.beginPath();
+        ctx.arc(this.x, drawY, this.size * this.life, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Outer Glow
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = this.glowColor;
+        ctx.strokeStyle = this.glowColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(this.x, drawY, this.size * 1.5 * this.life, 0, Math.PI * 2);
+        ctx.stroke();
+
         ctx.restore();
     }
 }
@@ -411,6 +470,7 @@ class Ring {
         this.vz = 0;
         this.isBurst = false;
         this.trail = [];
+        this.waitTimer = 0;
     }
 
     getBox() {
@@ -418,6 +478,14 @@ class Ring {
     }
 
     update(target) {
+        if (this.state === 'waiting') {
+            this.waitTimer--;
+            if (this.waitTimer <= 0) {
+                this.state = 'returning';
+            }
+            return; // Stay in place
+        }
+
         if (this.state !== 'orbit') {
             this.trail.push({ x: this.x, y: this.y, z: this.z, alpha: 0.5 });
             if (this.trail.length > 5) this.trail.shift();
@@ -439,17 +507,20 @@ class Ring {
             this.z += this.vz;
 
             if (this.x < 0 || this.x > canvas.width || this.y < FLOOR_TOP - 100 || this.y > FLOOR_BOTTOM + 100) {
-                this.startReturn();
+                this.startReturn(20); // Short delay when hitting bounds
             }
 
             const tBox = target.getBox();
             const rBox = this.getBox();
 
             if (checkCollision3D(rBox, tBox)) {
-                target.takeDamage(this.isBurst ? BURST_DAMAGE : RING_DAMAGE);
-                game.addEffect(this.x, this.y, this.z, '#fff', 'hit');
-                // Don't return immediately if burst? actually yes, standard behavior
-                this.startReturn();
+                // Calculate Damage with Multiplier
+                const baseDmg = this.isBurst ? BURST_DAMAGE : RING_DAMAGE;
+                target.takeDamage(baseDmg * this.owner.damageMultiplier);
+
+                game.addEffect(this.x, this.y, this.z, this.color, this.isBurst ? 'burstHit' : 'hit');
+                // Return immediately for smooth flow (removed delay 45 -> 0)
+                this.startReturn(0);
             }
 
         } else if (this.state === 'whip') {
@@ -460,7 +531,8 @@ class Ring {
             const angle = this.owner.whipAngle || 0;
 
             // Dynamic extension using sin wave for 'crack' effect
-            const time = (Date.now() - this.owner.whipStartTime) / 200;
+            // Slower speed to match "Voice Length" (approx 1.4s)
+            const time = (Date.now() - this.owner.whipStartTime) / 1400;
             // Extension phase: 0 to 1
             let extension = Math.sin(time * Math.PI);
             if (time > 1) extension = 0; // End
@@ -482,11 +554,9 @@ class Ring {
                 const rBox = this.getBox();
                 if (checkCollision3D(rBox, tBox)) {
                     if (this.owner.canHitWhip) {
-                        target.takeDamage(5); // light damage per ring per frame? Too OP.
-                        // Need a debouncer or just one hit per attack
-                        // We'll let it hit, but damage is low, or knockback
+                        // target.takeDamage(5); 
                         target.vx = Math.cos(angle) * 5;
-                        target.takeDamage(2); // Multi-hit potential
+                        target.takeDamage(2 * this.owner.damageMultiplier); // Multi-hit potential, scaled
                         game.addEffect(this.x, this.y, this.z, '#fff', 'spark');
                     }
                 }
@@ -573,8 +643,13 @@ class Ring {
         this.vz = vz;
     }
 
-    startReturn() {
-        this.state = 'returning';
+    startReturn(delay = 0) {
+        if (delay > 0) {
+            this.state = 'waiting';
+            this.waitTimer = delay;
+        } else {
+            this.state = 'returning';
+        }
     }
 
     draw(ctx) {
@@ -636,8 +711,11 @@ class Fighter {
         this.isGrounded = true;
         this.attackCooldown = 0;
         this.burstCooldown = 0;
+        this.specialCooldown = 0;
         this.state = 'idle';
         this.stateTimer = 0;
+        this.damageMultiplier = 1.0;
+        this.rotation = 0; // For death anim
     }
 
     get centerX() { return this.x + this.w / 2; }
@@ -657,8 +735,22 @@ class Fighter {
                 this.z = 0;
                 this.vz = 0;
                 this.isGrounded = true;
-                this.state = 'idle';
+                if (this.state !== 'dead') this.state = 'idle';
             }
+        }
+
+        // Death Physics
+        if (this.state === 'dead') {
+            // Slide friction
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vx *= 0.9;
+            this.vy *= 0.9;
+
+            if (this.isGrounded) {
+                this.rotation = Math.min(Math.PI / 2, this.rotation + 0.1); // Fall over
+            }
+            return; // Skip normal update
         }
 
         this.x += this.vx;
@@ -678,6 +770,7 @@ class Fighter {
 
         if (this.attackCooldown > 0) this.attackCooldown--;
         if (this.burstCooldown > 0) this.burstCooldown--;
+        if (this.specialCooldown > 0) this.specialCooldown--;
 
         this.rings.forEach(ring => ring.update(target));
 
@@ -728,7 +821,8 @@ class Fighter {
         this.attackCooldown = 30;
 
         const range = type === 'punch' ? 60 : 70;
-        const damage = type === 'punch' ? MELEE_DAMAGE : MELEE_DAMAGE + 2;
+        let damage = type === 'punch' ? MELEE_DAMAGE : MELEE_DAMAGE + 2;
+        damage *= this.damageMultiplier;
 
         const hitX = this.facing === 1 ? this.x + this.w : this.x - range;
 
@@ -766,7 +860,7 @@ class Fighter {
         const availableRings = this.rings.filter(r => r.state === 'orbit');
         if (availableRings.length === 5) {
             availableRings.forEach(r => r.throw(target.centerX, target.centerY, target.z + 50, true));
-            this.burstCooldown = 600;
+            this.burstCooldown = 900;
             this.state = 'burst';
             this.stateTimer = 35; // Matches slower animation (5 frames * 90ms = 450ms approx 27 ticks)
 
@@ -776,13 +870,14 @@ class Fighter {
     }
 
     whipAttack(target) {
-        if (this.burstCooldown > 0 || this.state === 'stun') return; // Shared cooldown or separate? Let's share burst cooldown for balance or add new one.
+        if (this.state === 'stun' || this.specialCooldown > 0) return;
         // Let's use attackCooldown for this one, but longer.
         if (this.attackCooldown > 0) return;
 
         const availableRings = this.rings.filter(r => r.state === 'orbit');
         if (availableRings.length === 5) {
-            this.attackCooldown = 120; // 2 seconds
+            this.attackCooldown = 100; // Animation Lock (~1.6s)
+            this.specialCooldown = 540; // Refill Time (9s) increased from 5s
             this.whipStartTime = Date.now();
             this.canHitWhip = true; // Reset hit flag? Actually in update we do continuous per frame safe damage
 
@@ -814,6 +909,9 @@ class Fighter {
         if (this.hp < 0) this.hp = 0;
         if (this.hp <= 0) {
             this.state = 'dead';
+            this.vx = -this.facing * 5; // Knockback
+            this.vz = 10; // Pop up
+            this.isGrounded = false;
             if (typeof sfx !== 'undefined') sfx.playBurst(); // Death sound
         }
     }
@@ -957,6 +1055,13 @@ class Fighter {
             // Flip if needed
             ctx.scale(this.facing, 1);
 
+            // Death Rotation
+            if (this.state === 'dead') {
+                // pivot is feet, so this looks like falling backward
+                ctx.rotate(-this.rotation * this.facing); // Rotate opposite to facing to fall 'back'
+                ctx.translate(0, -10); // Adjust pivot slightly
+            }
+
             // Draw image centered on X, anchored at bottom Y
             // (0,0) is now the feet pivot
             // Use calculated source rects
@@ -982,13 +1087,18 @@ class Fighter {
 
 // AI Controller
 class AIController {
-    constructor(fighter, opponent) {
+    constructor(fighter, opponent, level = 1) {
         this.fighter = fighter;
         this.opponent = opponent;
         this.state = 'idle'; // idle, chase, retreat, orbit, aggressive
         this.stateTimer = 0;
         this.moveDir = { x: 0, y: 0 };
         this.reactionDelay = 0;
+
+        // Difficulty Scaling
+        this.level = level;
+        // Reduce reaction delay as level increases. Base 15, -1 per level, min 0
+        this.reactionBase = Math.max(0, 15 - (level * 2));
     }
 
     update() {
@@ -1020,8 +1130,9 @@ class AIController {
                     this.moveDir.y = Math.sign(this.fighter.y - incomingRing.y) || (Math.random() > 0.5 ? 1 : -1);
                     this.state = 'dodge';
                     this.stateTimer = 10;
+                    this.reactionDelay = this.reactionBase + 15; // Reset cooldown
                 }
-                this.reactionDelay = 15; // Cooldown on reactions
+                this.reactionDelay = this.reactionBase + 15; // Reset cooldown
             }
         }
         if (this.reactionDelay > 0) this.reactionDelay--;
@@ -1045,7 +1156,9 @@ class AIController {
             dy = (yDiff < -10) ? 1 : (yDiff > 10 ? -1 : 0);
 
             // If close enough, attack
-            if (dist < 300 && hasAmmo && Math.random() < 0.02) {
+            // Aggression Scales with level: 0.02 base * level multiplier
+            const aggroMult = 1 + (this.level * 0.2);
+            if (dist < 300 && hasAmmo && Math.random() < 0.02 * aggroMult) {
                 this.fighter.throwRing(this.opponent);
             }
             if (dist < 60 && absYDiff < 30) {
@@ -1138,25 +1251,45 @@ class AIController {
 // Game Loop
 class Game {
     constructor() {
-        this.reset();
+        this.level = 1;
+        this.reset(false);
         this.running = false; // Start paused
+        this.deathTimer = 0;
         // Link initial global sprites if they loaded before reset was called (edge case)
         if (this.player) this.player.runImg = sonRunSprite;
         if (this.enemy) this.enemy.runImg = fatherRunSprite;
     }
 
-    reset() {
+    reset(nextLevel = false) {
+        if (nextLevel) {
+            this.level++;
+        } else {
+            this.level = 1;
+        }
+
+        // Apply Scaling
+        // Son (Player): Reduce power each level. Min 0.5
+        const playerPower = Math.max(0.5, 1.0 - ((this.level - 1) * 0.1));
+
+        // Father (Enemy): Increase power each level. Base power boosted to 1.4
+        const enemyPower = 1.4 + ((this.level - 1) * 0.15);
+
         this.player = new Fighter(100, 400, '#ffd700', 'Son', false, sonSprite);
+        this.player.damageMultiplier = playerPower;
         this.player.runImg = sonRunSprite; // Link run sprite
 
         this.enemy = new Fighter(800, 400, '#2196f3', 'Father', true, fatherSprite);
+        this.enemy.damageMultiplier = enemyPower;
         this.enemy.runImg = fatherRunSprite; // Link run sprite
 
-        this.ai = new AIController(this.enemy, this.player);
+        this.ai = new AIController(this.enemy, this.player, this.level);
         this.effects = [];
 
         this.running = true;
         document.getElementById('game-over-screen').classList.add('hidden');
+
+        const lvlDisplay = document.getElementById('level-display');
+        if (lvlDisplay) lvlDisplay.textContent = "Level " + this.level;
     }
 
     update() {
@@ -1200,7 +1333,6 @@ class Game {
             aimStick.wasActive = false;
         }
 
-        if (checkTrigger(KEYS.U)) this.player.throwRing(this.enemy);
 
         this.player.update(this.enemy);
         this.enemy.update(this.player);
@@ -1212,7 +1344,11 @@ class Game {
         });
 
         if (this.player.hp <= 0 || this.enemy.hp <= 0) {
-            this.endGame();
+            if (this.deathTimer === 0) this.deathTimer = 120; // 2 seconds before menu
+            this.deathTimer--;
+            if (this.deathTimer <= 0) {
+                this.endGame();
+            }
         }
 
         // Running Sound Logic
@@ -1319,8 +1455,24 @@ class Game {
     }
 
     addEffect(x, y, z, color, type) {
-        if (type === 'shockwave') {
-            this.effects.push(new Shockwave(x, y, z, color));
+        if (type === 'hit') {
+            // Normal Hit
+            this.effects.push(new ImpactFlash(x, y, z, color, 30));
+            this.effects.push(new Shockwave(x, y, z, color, 'normal'));
+            for (let i = 0; i < 6; i++) {
+                this.effects.push(new Particle(x, y, z, color, 'spark'));
+            }
+        } else if (type === 'burstHit') {
+            // Big Burst Hit
+            this.effects.push(new ImpactFlash(x, y, z, color, 60));
+            this.effects.push(new Shockwave(x, y, z, color, 'burst'));
+            // Add extra sparkles
+            for (let i = 0; i < 15; i++) {
+                this.effects.push(new Particle(x, y, z, color, 'spark'));
+                this.effects.push(new Particle(x, y, z, '#fff', 'spark')); // White sparks too
+            }
+        } else if (type === 'shockwave') { // Activation
+            this.effects.push(new Shockwave(x, y, z, color, 'burst'));
             for (let i = 0; i < 10; i++) {
                 this.effects.push(new Particle(x, y, z, color, 'spark'));
             }
@@ -1339,8 +1491,61 @@ class Game {
         const playerReady = this.player.rings.filter(r => r.state === 'orbit').length;
         const enemyReady = this.enemy.rings.filter(r => r.state === 'orbit').length;
 
-        document.getElementById('player-rings').textContent = playerReady;
-        document.getElementById('enemy-rings').textContent = enemyReady;
+        // Render Visual Rings
+        const updateRingDisplay = (containerId, count, total, type) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            // Simple rebuild (active vs inactive)
+            let html = '';
+            for (let i = 0; i < total; i++) {
+                const isActive = i < count ? 'active' : '';
+                html += `<div class="ring-dot ${type}-ring ${isActive}"></div>`;
+            }
+            // Only update if changed to avoid thrashing? actually innerHTML is fast enough for 5 div
+            if (container.dataset.lastCount != count) {
+                container.innerHTML = html;
+                container.dataset.lastCount = count;
+            }
+        };
+
+        updateRingDisplay('player-rings-display', playerReady, 5, 'son');
+        updateRingDisplay('enemy-rings-display', enemyReady, 5, 'father');
+
+        // Visual Cooldowns
+        const burstBtn = document.getElementById('btn-burst');
+        if (burstBtn) {
+            const burstFill = burstBtn.querySelector('.btn-fill');
+            if (burstFill) {
+                // Burst CD is 900
+                const pct = Math.max(0, Math.min(100, (1 - (this.player.burstCooldown / 900)) * 100));
+                burstFill.style.height = pct + '%';
+
+                // Optional: Grey out if not enough rings?
+                // Burst requires 5 rings.
+                if (playerReady < 5) {
+                    burstBtn.style.opacity = '0.5';
+                } else {
+                    burstBtn.style.opacity = '1';
+                }
+            }
+        }
+
+        const specialBtn = document.getElementById('btn-special');
+        if (specialBtn) {
+            const specialFill = specialBtn.querySelector('.btn-fill');
+            if (specialFill) {
+                // Special Attack CD is 540
+                // Normalize against 540 for full drain visualization
+                const pct = Math.max(0, Math.min(100, (1 - (this.player.specialCooldown / 540)) * 100));
+                specialFill.style.height = pct + '%';
+
+                if (playerReady < 5) {
+                    specialBtn.style.opacity = '0.5';
+                } else {
+                    specialBtn.style.opacity = '1';
+                }
+            }
+        }
     }
 
     endGame() {
@@ -1348,13 +1553,19 @@ class Game {
         if (typeof sfx !== 'undefined' && sfx.updateRunSound) sfx.updateRunSound(false);
         const screen = document.getElementById('game-over-screen');
         const text = document.getElementById('winner-text');
+        const btn = screen.querySelector('button');
+
         screen.classList.remove('hidden');
         if (this.player.hp <= 0) {
             text.textContent = "Father Wins!";
             text.style.color = '#f00';
+            btn.textContent = "Restart Game";
+            btn.onclick = () => game.reset(false);
         } else {
-            text.textContent = "You Win!";
+            text.textContent = "Level " + this.level + " Complete!";
             text.style.color = '#0f0';
+            btn.textContent = "Next Level >>";
+            btn.onclick = () => game.reset(true);
         }
     }
 }

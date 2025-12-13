@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Son vs Father: Ring Battle</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Home Screen Overlay -->
+    <div id="home-screen">
+        <div id="home-title">LEGEND OF THE<br>TEN RINGS</div>
+        <button id="play-btn" onclick="startStory()">PLAY</button>
+    </div>
+
+    <!-- Global Full Screen Button -->
+    <button id="btn-fullscreen" class="ui-btn">⛶ Full Screen</button>
+
+    <!-- Story Screen Overlay -->
+    <div id="story-container" class="hidden">
+        <img id="story-image" src="" alt="Story Scene">
+        <button id="skip-btn" onclick="storyMode.endStory()">Skip >></button>
+    </div>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui-layer">
+            <div id="player-hud" class="hud">
+                <div class="name">Son (Player)</div>
+                <div class="hp-bar-bg">
+                    <div id="player-hp" class="hp-bar"></div>
+                </div>
+                <div class="rings-count">Rings: <span id="player-rings">5</span></div>
+            </div>
+            <div id="enemy-hud" class="hud">
+                <div class="name">Father (AI)</div>
+                <div class="hp-bar-bg">
+                    <div id="enemy-hp" class="hp-bar"></div>
+                </div>
+                <div class="rings-count">Rings: <span id="enemy-rings">5</span></div>
+            </div>
+
+            <div id="controls-hint">
+                <div class="desktop-hint">Controls: WASD Move, SPACE Jump, J Punch, K Kick, U Throw Ring, I Burst</div>
+                <div class="mobile-hint">Mobile: Left Stick Move, Right Stick Aim/Throw, Buttons for actions.</div>
+            </div>
+            <div id="mobile-controls">
+                <div id="stick-left" class="stick-zone">
+                    <div class="stick-base"></div>
+                    <div class="stick-knob"></div>
+                </div>
+                <div id="stick-right" class="stick-zone">
+                    <div class="stick-base"></div>
+                    <div class="stick-knob"></div>
+                </div>
+                <div id="mobile-buttons">
+                    <button id="btn-jump" class="mob-btn" data-key=" ">⬆</button>
+
+                    <button id="btn-burst" class="mob-btn" data-key="i">💥</button>
+                    <button id="btn-special" class="mob-btn" data-key="l">🐉</button>
+                </div>
+            </div>
+
+
+            <!-- Game Over Screen -->
+            <div id="game-over-screen" class="hidden">
+                <h1 id="winner-text">Winner</h1>
+                <button onclick="game.reset()">Restart</button>
+            </div>
+        </div>
+    </div>
+    <div id="portrait-warning">
+        Please Rotate Device ⟳
+    </div>
+    <script src="sfx.js"></script>
+    <script src="story.js"></script>
+    <script src="game.js"></script>
+</body>
+
+</html>

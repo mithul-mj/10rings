@@ -5,18 +5,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Son vs Father: Ring Battle</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts: Cinzel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
     <!-- Home Screen Overlay -->
-    <div id="home-screen">
-        <div id="home-title">LEGEND OF THE<br>TEN RINGS</div>
-        <button id="play-btn" onclick="startStory()">PLAY</button>
+    <div id="home-screen" onclick="startStory()">
+
+        <div id="touch-start" onclick="startStory()">TOUCH TO START</div>
     </div>
 
     <!-- Global Full Screen Button -->
-    <button id="btn-fullscreen" class="ui-btn">⛶ Full Screen</button>
+    <button id="btn-fullscreen" class="ui-btn" aria-label="Full Screen"></button>
 
     <!-- Story Screen Overlay -->
     <div id="story-container" class="hidden">
@@ -27,20 +31,45 @@
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
         <div id="ui-layer">
+            <!-- Level Display (Center) -->
             <div id="level-display">Level 1</div>
-            <div id="player-hud" class="hud">
-                <div class="name">Son (Player)</div>
-                <div class="hp-bar-bg">
-                    <div id="player-hp" class="hp-bar"></div>
+
+            <!-- Enemy HUD (Now Left) -->
+            <div id="enemy-hud" class="hud-container left-hud">
+                <div class="hud-frame-wrapper">
+                    <img src="assets/images/main health bar section of father.png" class="hud-frame-img"
+                        alt="Enemy Frame">
+
+                    <!-- Content Overlay -->
+                    <div class="hud-content">
+                        <div class="hud-text-area">
+                            <div class="name"></div>
+                            <div class="hp-bar-container">
+                                <div id="enemy-hp" class="hp-bar"></div>
+                            </div>
+                            <div id="enemy-rings-display" class="rings-visual-container"></div>
+                        </div>
+                    </div>
                 </div>
-                <div id="player-rings-display" class="rings-visual-container"></div>
             </div>
-            <div id="enemy-hud" class="hud">
-                <div class="name">Father (AI)</div>
-                <div class="hp-bar-bg">
-                    <div id="enemy-hp" class="hp-bar"></div>
+
+            <!-- Player HUD (Now Right) -->
+            <div id="player-hud" class="hud-container right-hud">
+                <div class="hud-frame-wrapper">
+                    <img src="assets/images/main health bar section of son.png" class="hud-frame-img"
+                        alt="Player Frame">
+
+                    <!-- Content Overlay -->
+                    <div class="hud-content">
+                        <div class="hud-text-area">
+                            <div class="name"></div>
+                            <div class="hp-bar-container">
+                                <div id="player-hp" class="hp-bar"></div>
+                            </div>
+                            <div id="player-rings-display" class="rings-visual-container"></div>
+                        </div>
+                    </div>
                 </div>
-                <div id="enemy-rings-display" class="rings-visual-container"></div>
             </div>
 
             <div id="controls-hint">
@@ -86,11 +115,18 @@
         </div>
     </div>
     <div id="portrait-warning">
-        Please Rotate Device ⟳
+        <div class="rotate-icon"></div>
+        <div class="rotate-text">For Best Experience<br>Rotate Your Device</div>
     </div>
-    <script src="sfx.js"></script>
-    <script src="story.js"></script>
-    <script src="game.js"></script>
+    <script src="js/sfx.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/effects.js"></script>
+    <script src="js/entities.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/story.js"></script>
+    <script src="js/game.js"></script>
 </body>
 
 </html>

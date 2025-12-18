@@ -11,7 +11,10 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    height: 100vh;
+    font-family: 'Cinzel', 'Times New Roman', serif;
+    color: white;
+    overflow: hidden;
     color: white;
     overflow: hidden;
     overscroll-behavior: none;
@@ -32,104 +35,278 @@ canvas {
     display: block;
 }
 
+/* HUD Layer Layout */
 #ui-layer {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
+    /* Allow HUD to take up space but not block clicks on game */
     height: 100%;
     pointer-events: none;
     display: flex;
     justify-content: space-between;
-    padding: 20px;
+    padding: 10px 20px;
     box-sizing: border-box;
 }
 
+/* Level Display */
 #level-display {
     position: absolute;
-    top: 20px;
+    top: 15px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #ffd700;
-    text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-    z-index: 5;
+    transform: translateX(-50%);
+    /* Font inherited from body (Cinzel) */
+    font-weight: 700;
+    font-size: 2.5rem;
+    color: #ffeeb0;
+    text-shadow:
+        0 0 5px #000,
+        0 0 10px #ffaa00;
+    z-index: 10;
+    white-space: nowrap;
 }
 
-.hud {
-    width: 300px;
+/* HUD Containers */
+.hud-container {
+    width: 45%;
+    max-width: 500px;
+    height: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.hud-frame-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.hud-frame-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    user-select: none;
+    /* Determine if we need to let click through (usually yes for HUD) */
+}
+
+/* Content Overlay: Absolute over the frame image */
+/* Content Overlay: Absolute over the frame image */
+.hud-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Portrait Positioning */
+.hud-portrait {
+    position: absolute;
+    width: 21%;
+    /* Fine-tuned for circle slot */
+    aspect-ratio: 1/1;
+    border-radius: 50%;
+    object-fit: cover;
+    z-index: 1;
+    /* Below frame if frame has transparency, but usually above for simple composite */
+    /* Remove borders to blend with image frame */
+    border: none;
+    background: transparent;
+    box-shadow: none;
+}
+
+.left-hud .hud-portrait {
+    top: 17%;
+    left: 1.5%;
+}
+
+.right-hud .hud-portrait {
+    top: 6%;
+    right: 3%;
+    left: auto;
+}
+
+/* HP Bar Container: Positioned to fill the empty slot in the frame */
+.hp-bar-container {
+    position: absolute;
+    top: 44%;
+    /* Centered vertically in the slot */
+    height: 12%;
+    /* Sleeker, thinner bar */
+    /* Remove borders/bg to use image as frame */
+    background: transparent;
+    border: none;
+    border-radius: 2px;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    z-index: 0;
+}
+
+.left-hud .hp-bar-container {
+    left: 22%;
+    width: calc(63% + 2px);
+    top: calc(44% - 5px);
+    /* Significantly shorter to clear dragon tail */
+}
+
+.right-hud .hp-bar-container {
+    right: 22%;
+    width: 63%;
+}
+
+/* Text Area elements positioned individually now */
+.hud-text-area {
+    /* No longer a flex container, just a grouper if needed which we don't really use */
+    position: static;
 }
 
 .name {
-    font-size: 1.2rem;
-    margin-bottom: 5px;
-    text-shadow: 1px 1px 2px black;
+    position: absolute;
+    top: 10%;
+    font-size: 0.95rem;
+    color: #ffd700;
+    /* Gold text */
+    text-shadow: 1px 1px 2px #000;
     font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
 }
 
-.hp-bar-bg {
-    width: 100%;
-    height: 12px;
-    background-color: #333;
-    border: 1px solid #000;
-    border-radius: 10px;
-    /* Fully Rounded */
-    overflow: hidden;
+.left-hud .name {
+    left: 26%;
+    /* Slight offset from start of bar */
+    text-align: left;
 }
 
-@media (max-width: 600px) {
-    .hud {
-        width: 140px;
-    }
-
-    .name {
-        font-size: 0.8rem;
-    }
+.right-hud .name {
+    right: 26%;
+    text-align: right;
 }
 
+/* Rings Display Positioning */
+.rings-visual-container {
+    position: absolute;
+    /* Adjusted to sit in the socket row below the bar */
+    top: 68%;
+    /* Lowered to sit exactly on the bottom rail */
+    display: flex;
+    gap: 6px;
+    height: 20px;
+    align-items: center;
+    z-index: 5;
+    padding: 0 5px;
+}
+
+.left-hud .rings-visual-container {
+    left: 23%;
+    /* Move slightly right to center under bar start */
+    justify-content: flex-start;
+}
+
+.right-hud .rings-visual-container {
+    right: 23%;
+    /* Move slightly left */
+    justify-content: flex-end;
+}
+
+/* The actual bar */
 .hp-bar {
     width: 100%;
     height: 100%;
-    background-color: #0f0;
-    transition: width 0.2s, background-color 0.2s;
+    transition: width 0.3s ease-out;
+    position: relative;
+}
+
+/* HP Bar Colors/Textures */
+#player-hp {
+    background: linear-gradient(to left, #ff4400, #cc2200);
+    box-shadow: 0 0 10px rgba(255, 68, 0, 0.6);
+    margin-left: auto;
+    /* Align to right */
 }
 
 #enemy-hp {
-    background-color: #f00;
+    background: linear-gradient(to right, #00ff00, #44ff44);
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    /* Align to left (default) */
 }
 
-/* Visual Rings */
-.rings-visual-container {
-    margin-top: 8px;
-    display: flex;
-    gap: 5px;
-    height: 15px;
-    align-items: center;
-}
 
+
+/* Ring Dots - Empty Socket State */
 .ring-dot {
-    width: 12px;
-    height: 12px;
+    width: 20px;
+    /* Larger to fit slots */
+    height: 20px;
     border-radius: 50%;
-    border: 2px solid #555;
-    background: transparent;
-    box-shadow: 0 0 2px #000;
+    background: rgba(0, 0, 0, 0.4);
+    /* Dark placeholder for empty slot */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 5px #000;
     transition: all 0.3s;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    box-sizing: border-box;
+    /* Crucial for preventing jummp when border changes */
 }
 
-/* Son: Golden Red */
+/* Active States - Using Images */
 .ring-dot.son-ring.active {
-    background: radial-gradient(circle, #ff4444 30%, #ffd700 100%);
-    border-color: #ffd700;
-    box-shadow: 0 0 5px #ff4444, 0 0 8px #ffd700;
+    background-color: transparent;
+    background-image: url('../assets/images/ui_orb_red.png');
+    border: 1px solid transparent;
+    /* Keep border width to prevent layout shift */
+    box-shadow: 0 0 10px #ff4400;
 }
 
-/* Father: Blue */
 .ring-dot.father-ring.active {
-    background: radial-gradient(circle, #00ffff 30%, #2196f3 100%);
-    border-color: #aaddff;
-    box-shadow: 0 0 5px #00ffff, 0 0 8px #2196f3;
+    background-color: transparent;
+    background-image: url('../assets/images/ui_orb_green.png');
+    border: 1px solid transparent;
+    /* Keep border width to prevent layout shift */
+    box-shadow: 0 0 10px #00ff00;
+}
+
+/* Mobile Tweaks */
+@media (max-width: 768px) {
+    .hud-container {
+        width: 160px;
+    }
+
+    .hud-portrait {
+        width: 35px;
+        height: 35px;
+        border-width: 1px;
+    }
+
+    .name {
+        font-size: 0.7rem;
+        display: none;
+        /* Hide name on very small screens if crowded */
+    }
+
+    .hp-bar-container {
+        height: 10px;
+        border-width: 1px;
+    }
+
+    .ring-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    #level-display {
+        font-size: 1.5rem;
+        top: 10px;
+    }
+
+    #ui-layer {
+        padding: 5px;
+    }
 }
 
 #controls-hint {
@@ -193,26 +370,48 @@ button:hover {
 
 /* Full Screen Button */
 /* Full Screen Button */
+/* Full Screen Button */
 #btn-fullscreen {
     position: fixed;
-    /* Fixed to viewport */
+    position: fixed;
     top: 20px;
+    /* Default: Top Right (Start/Story) */
     right: 20px;
-    left: auto;
-    /* Reset left */
-    transform: none;
-    /* Reset transform */
-    pointer-events: auto;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 8px 15px;
-    font-size: 0.9rem;
+    /* Gameplay position will be applied via .gameplay-pos class */
+    width: 60px;
+    height: 60px;
+
+    background: url('../assets/images/fullscreen.png') no-repeat center center;
+    background-size: contain;
+    background-color: transparent;
+
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    color: transparent;
+    /* Hide any text if present */
+
+    padding: 0;
     z-index: 9500;
-    /* Above Home Screen (9000) */
+    cursor: pointer;
+    transition: transform 0.1s ease;
 }
 
 #btn-fullscreen:hover {
-    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+    filter: brightness(1.2);
+}
+
+#btn-fullscreen:active {
+    transform: scale(0.95);
+    transform: scale(0.95);
+    box-shadow: none;
+}
+
+/* Gameplay Position override */
+#btn-fullscreen.gameplay-pos {
+    top: 140px;
+    right: 30px;
 }
 
 /* Mobile Additions */
@@ -431,17 +630,90 @@ button:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    background: #000;
-    color: #ffffff !important;
+    background: radial-gradient(circle, #222 0%, #000 100%);
+    color: #ffd700;
     z-index: 99999;
-    /* Higher than anything */
     flex-direction: column;
     justify-content: center;
     align-items: center;
+}
+
+/* CSS Phone Icon */
+.rotate-icon {
+    width: 60px;
+    height: 100px;
+    border: 4px solid #fff;
+    border-radius: 8px;
+    position: relative;
+    margin-bottom: 30px;
+    animation: rotatePhone 2.5s infinite ease-in-out;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+/* Home Button on Phone */
+.rotate-icon::after {
+    content: '';
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+}
+
+@keyframes rotatePhone {
+    0% {
+        transform: rotate(0deg);
+        opacity: 1;
+    }
+
+    30% {
+        transform: rotate(0deg);
+        /* Hold portrait */
+    }
+
+    60% {
+        transform: rotate(90deg);
+        /* Rotate to landscape */
+    }
+
+    90% {
+        transform: rotate(90deg);
+        /* Hold landscape */
+        opacity: 1;
+    }
+
+    100% {
+        transform: rotate(90deg);
+        opacity: 0;
+        /* Fade out to restart */
+    }
+}
+
+.rotate-text {
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    color: #ffd700;
+    text-shadow: 0 0 10px #ff4400;
+    text-transform: uppercase;
     text-align: center;
-    font-size: 2rem;
-    /* Bigger text */
-    font-weight: bold;
+    letter-spacing: 2px;
+    line-height: 1.6;
+    animation: fadeText 2.5s infinite ease-in-out;
+}
+
+@keyframes fadeText {
+
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 @media (orientation: portrait) and (max-width: 900px) {
@@ -464,7 +736,7 @@ button:hover {
     width: 100%;
     height: 100%;
     /* Explicit background properties for better compatibility */
-    background-image: url('home_bg.png');
+    background-image: url('../assets/images/home_background.png');
     background-repeat: no-repeat;
     background-position: center center;
     background-size: cover;
@@ -511,6 +783,44 @@ button:hover {
 
 #play-btn:active {
     transform: scale(0.95);
+}
+
+#touch-start {
+    /* Font inherited from body */
+    font-size: 1.4rem;
+    color: rgba(255, 235, 205, 0.9);
+    /* BlanchedAlmond/Parchment tint */
+    text-transform: uppercase;
+    font-weight: normal;
+    /* Let the font carry the weight */
+    letter-spacing: 6px;
+    /* Widescreen cinematic feel */
+    position: absolute;
+    bottom: 60px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    margin-top: 0;
+    animation: cinematicPulse 3s infinite ease-in-out;
+    cursor: pointer;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 15px rgba(255, 120, 0, 0.4);
+}
+
+@keyframes cinematicPulse {
+
+    0%,
+    100% {
+        opacity: 0.6;
+        transform: scale(1);
+        filter: brightness(0.8);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+        filter: brightness(1.2);
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 25px rgba(255, 200, 0, 0.6);
+    }
 }
 
 /* Mobile Home Screen Adjustments */

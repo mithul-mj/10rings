@@ -37,11 +37,11 @@ class SoundManager {
     }
 
     playThrow() {
-        this.playFile('audio/single fire.mp3', 0.8);
+        this.playFile('assets/audio/single fire.mp3', 0.8);
     }
 
     playJump() {
-        this.playFile('audio/jump.mp3', 0.6);
+        this.playFile('assets/audio/jump.mp3', 0.6);
     }
 
     playHit() {
@@ -53,17 +53,17 @@ class SoundManager {
     }
 
     playBurst() {
-        this.playFile('audio/explosive.mp3', 1.0);
+        this.playFile('assets/audio/explosive.mp3', 1.0);
     }
 
     playSnake() {
-        this.playFile('audio/snake.mp3', 1.0);
+        this.playFile('assets/audio/snake.mp3', 1.0);
     }
 
 
     playBGM() {
         if (!this.bgm) {
-            this.bgm = new Audio('audio/bgm.m4a');
+            this.bgm = new Audio('assets/audio/bgm.m4a');
             this.bgm.loop = true;
             this.bgm.volume = 0.2; // Low volume as requested
         }
@@ -79,7 +79,7 @@ class SoundManager {
 
     updateRunSound(isRunning) {
         if (!this.runAudio) {
-            this.runAudio = new Audio('audio/running.mp3');
+            this.runAudio = new Audio('assets/audio/running.mp3');
             this.runAudio.loop = true;
             this.runAudio.volume = 0.3; // Reduced volume
         }

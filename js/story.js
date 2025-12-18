@@ -5,8 +5,8 @@ class StoryMode {
         this.container = document.getElementById('story-container');
         this.imageElement = document.getElementById('story-image');
         this.audioElement = new Audio();
-        this.basePath = 'storyline/scene '; // Note space
-        this.audioPath = 'audio/scene ';   // Note space
+        this.basePath = 'assets/images/storyline/scene '; // Note space
+        this.audioPath = 'assets/audio/scene ';   // Note space
         this.isPlaying = false;
 
         // Bind 'Skip' or Click to advance? User didn't ask, but good for testing.
@@ -23,6 +23,10 @@ class StoryMode {
 
         this.currentScene = 1;
         this.playScene();
+
+        // Ensure FS Button is Top Right
+        const fsBtn = document.getElementById('btn-fullscreen');
+        if (fsBtn) fsBtn.classList.remove('gameplay-pos');
     }
 
     playScene() {
